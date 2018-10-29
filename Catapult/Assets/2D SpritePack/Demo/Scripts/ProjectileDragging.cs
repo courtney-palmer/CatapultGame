@@ -1,11 +1,14 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ProjectileDragging : MonoBehaviour {
-    public float maxStretch = 3.0f;
-    public LineRenderer leftArm;
-    public LineRenderer rightArm;
+public class ProjectileDragging : MonoBehaviour
+{
+
+    public float maxStretch = 1.0f;
+    public LineRenderer catapultLineFront;
+    public LineRenderer catapultLineBack;
     private SpringJoint2D spring;
     private Transform catapult;
     private Ray rayToMouse;
@@ -14,61 +17,58 @@ public class ProjectileDragging : MonoBehaviour {
     private float circleRadius;
     private bool clickedOn;
     private Vector2 prevVelocity;
-    private new Rigidbody2D rigidbody2D;
-    private CircleCollider2D collider2D;
+    private Rigidbody2D rigidbody2d;
+    private CircleCollider2D circle;
 
-    private void Awake(){
+    void Awake()
+    {
         spring = GetComponent<SpringJoint2D>();
+        rigidbody2d = GetComponent<Rigidbody2D>();
+        circle = GetComponent<CircleCollider2D>();
         catapult = spring.connectedBody.transform;
     }
 
-    void Start () {
-        rigidbody2D = GetComponent<Rigidbody2D>();
+    void Start()
+    {
         LineRendererSetup();
         rayToMouse = new Ray(catapult.position, Vector3.zero);
+        leftCatapultToProjectile = new Ray(catapultLineFront.transform.position, Vector3.zero);
         maxStretchSqr = maxStretch * maxStretch;
-        leftCatapultToProjectile = new Ray(leftArm.transform.position, Vector3.zero);
-        CircleCollider2D circle = collider2D as CircleCollider2D;
         circleRadius = circle.radius;
     }
-
-	void Update () {
+    void Update()
+    {
         if (clickedOn)
             Dragging();
-        if(spring != null) {
-            if(!rigidbody2D.isKinematic && prevVelocity.sqrMagnitude > rigidbody2D.velocity.sqrMagnitude){
+
+        if (spring != null)
+        {
+            if (!rigidbody2d.isKinematic && prevVelocity.sqrMagnitude > rigidbody2d.velocity.sqrMagnitude)
+            {
                 Destroy(spring);
-                rigidbody2D.velocity = prevVelocity;
+                rigidbody2d.velocity = prevVelocity;
             }
             if (!clickedOn)
-                prevVelocity = rigidbody2D.velocity;
+                prevVelocity = rigidbody2d.velocity;
 
             LineRendererUpdate();
         }
-        else{
-            leftArm.enabled = false;
-            rightArm.enabled = false;
+        else
+        {
+            catapultLineFront.enabled = false;
+            catapultLineBack.enabled = false;
         }
-	}
-
-    void LineRendererSetup()
-    {
-        leftArm.SetPosition(0, leftArm.transform.position);
-        rightArm.SetPosition(0, rightArm.transform.position);
-
-        leftArm.sortingLayerName = "MiddleGround";
-        rightArm.sortingLayerName = "MiddleGround";
-
-        leftArm.sortingOrder = 2;
-        rightArm.sortingOrder = 1;
     }
 
-    void LineRendererUpdate(){
-        Vector2 catapultToProjectile = transform.position - leftArm.transform.position;
-        leftCatapultToProjectile.direction = catapultToProjectile;
-        Vector3 holdpoint = leftCatapultToProjectile.GetPoint(catapultToProjectile.magnitude + circleRadius);
-        leftArm.SetPosition(1, holdpoint);
-        rightArm.SetPosition(1, holdpoint);
+    void LineRendererSetup(){
+        catapultLineFront.SetPosition(0, catapultLineFront.transform.position);
+        catapultLineBack.SetPosition(0, catapultLineBack.transform.position);
+
+        catapultLineFront.sortingLayerName = "MiddleGround";
+        catapultLineBack.sortingLayerName = "MiddleGround";
+
+        catapultLineFront.sortingOrder = 3;
+        catapultLineBack.sortingOrder = 1;
     }
 
     void OnMouseDown(){
@@ -78,19 +78,27 @@ public class ProjectileDragging : MonoBehaviour {
 
     void OnMouseUp(){
         spring.enabled = true;
-        rigidbody2D.isKinematic = false;
+        rigidbody2d.isKinematic = false;
         clickedOn = false;
     }
 
-    void Dragging()
-    {
+    void Dragging(){
         Vector3 mouseWorldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector2 catapultToMouse = mouseWorldPoint - catapult.position;
-        if (catapultToMouse.sqrMagnitude > maxStretchSqr){
+        if (catapultToMouse.sqrMagnitude > maxStretchSqr)
+        {
             rayToMouse.direction = catapultToMouse;
             mouseWorldPoint = rayToMouse.GetPoint(maxStretch);
         }
         mouseWorldPoint.z = 0f;
         transform.position = mouseWorldPoint;
+    }
+
+    void LineRendererUpdate(){
+        Vector2 catapultToProjectile = transform.position - catapultLineFront.transform.position;
+        leftCatapultToProjectile.direction = catapultToProjectile;
+        Vector3 holdPoint = leftCatapultToProjectile.GetPoint(catapultToProjectile.magnitude + circleRadius);
+        catapultLineFront.SetPosition(1, holdPoint);
+        catapultLineBack.SetPosition(1, holdPoint);
     }
 }
